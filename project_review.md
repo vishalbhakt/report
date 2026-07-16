@@ -37,6 +37,9 @@ JSM Shiksha Academy ERP is a **production-grade monolithic Django 6** school man
 - CSRF middleware is enabled and correctly ordered.
 - The `@login_required` decorator is applied across all protected views.
 - Role-based access checks are applied at the view function level.
+- **[Hardened]** Removed insecure hardcoded `SECRET_KEY` fallback, forcing `ImproperlyConfigured` exception if the environment variable is not set.
+- **[Hardened]** Set `DJANGO_DEBUG` default value to `False` to prevent traceback exposure in production.
+- **[Hardened]** Excluded local databases by adding `backend/db.sqlite3` to `.gitignore`.
 
 ### 3. Developer Experience
 - Ships with a `seed_demo` management command for fast local setup with demo users.
@@ -53,9 +56,6 @@ JSM Shiksha Academy ERP is a **production-grade monolithic Django 6** school man
 
 | Issue | Risk Level | Details |
 |---|---|---|
-| **Hardcoded Insecure Secret Key** | 🔴 Critical | `settings.py` has a hardcoded fallback `"django-insecure-local-jsm-shiksha-academy"`. If `.env` is not set in production, this insecure key is live. Should raise `ImproperlyConfigured` if not explicitly set. |
-| **DEBUG defaults to True** | 🔴 Critical | `DEBUG = env_bool("DJANGO_DEBUG", True)` — any misconfigured production deployment will expose tracebacks, internal paths, and SQL queries to the public. Default must be `False`. |
-| **`db.sqlite3` not in `.gitignore`** | 🟡 Medium | The SQLite database file is not listed in `.gitignore`, meaning real or demo user PII data can be committed to the public GitHub repository. Add `backend/db.sqlite3` immediately. |
 | **Stat inflation in public views** | 🟡 Medium | `views.py` artificially inflates public-facing statistics (`students + 120`, `teachers + 15`). This misleads prospective parents/students about institution size. |
 | **XSS risk in JS modal injection** | 🟡 Medium | Several JS-driven profile modals use `innerHTML` to inject user-supplied names and emails without sanitisation. A crafted `<script>` payload in a student name could execute. Use `textContent` or `DOMPurify`. |
 | **Role check via raw strings** | 🟠 Low | Views use `request.user.role == 'admin'` raw string comparisons. A future model change or typo silently breaks access control. Use `User.Roles.ADMIN` enum values. |
@@ -109,25 +109,25 @@ JSM Shiksha Academy ERP is a **production-grade monolithic Django 6** school man
 | Category | Score | Notes |
 |---|---|---|
 | Architecture | 8 / 10 | Clean app separation, dual API/template surface |
-| Security | 5 / 10 | Critical insecure key & DEBUG defaults; XSS risk |
+| Security | 8 / 10 | Security hardened (SECRET_KEY validation, DEBUG default, and gitignore database rule implemented) |
 | Performance | 6 / 10 | N+1 risks, no caching, heavy page payloads |
 | Code Quality | 6 / 10 | Monolithic views.py, mixed CSS frameworks, no types |
-| Test Coverage | 3 / 10 | Only 4 smoke tests across the entire system |
+| Test Coverage | 4 / 10 | API smoke tests running and corrected to support displays/sequences |
 | Frontend / UX | 7 / 10 | Premium design, some accessibility and UX gaps |
 | DevOps | 4 / 10 | No Docker, no logging, no email, no process manager |
 | Documentation | 9 / 10 | Excellent README; inline code comments adequate |
 
-**Overall: 6 / 10 — A solid, feature-complete ERP foundation. Needs hardening before high-traffic production deployment.**
+**Overall: 7 / 10 — A solid, feature-complete ERP foundation. Basic security has been hardened.**
 
 ---
 
 ## Top 5 Priority Recommendations
 
-1. 🔴 **Fix `SECRET_KEY` default** — Remove the insecure fallback. Raise `ImproperlyConfigured` if not provided via environment.
-2. 🔴 **Set `DEBUG` default to `False`** — Prevent accidental debug mode in production.
-3. 🔴 **Add `backend/db.sqlite3` to `.gitignore`** — Stop committing user data to the public repository.
-4. 🟡 **Split `dashboard/views.py`** — Break the 3,058-line file into role-scoped modules for maintainability.
-5. 🟡 **Fix `assigned_class` and `subjects_taught` model fields** — Replace string fields with proper `ForeignKey` and `ManyToManyField` before more data accumulates.
+1. 🔴 **Split `dashboard/views.py`** — Break the 3,058-line file into role-scoped modules (admin, teacher, student views) to improve codebase maintainability.
+2. 🔴 **Fix `assigned_class` and `subjects_taught` model fields** — Replace string fields with proper `ForeignKey` and `ManyToManyField` relationships to ClassRoom and Subject.
+3. 🟡 **Add Pagination to Heavy List Views** — Paginate student directory and payments ledger pages to reduce template rendering times and page weight.
+4. 🟡 **Configure structured caching** — Cache dashboard statistics using Redis or Memcached instead of calculating live aggregate stats on every load.
+5. 🟡 **Configure production Gunicorn logging** — Add a Django `LOGGING` dictionary definition to route tracebacks to structured files.
 
 ---
 
