@@ -23,10 +23,14 @@ Each version entry should include:
 ---
 
 ### v1.5.0 — 2026-07-16
-**Git Commit:** *(run `git log --oneline -1` to fill in)*  
-**Type:** `ui` · `fix`
+**Git Commit:** `b1341f4`  
+**Type:** `ui` · `fix` · `security`
 
 #### Changes
+- **Security:** Removed the hardcoded default `SECRET_KEY` fallback; the application now raises an `ImproperlyConfigured` exception if the environment key is missing.
+- **Security:** Changed `DJANGO_DEBUG` default value from `True` to `False` to prevent tracebacks in production.
+- **Security:** Added `backend/db.sqlite3` to `.gitignore` to prevent local SQLite databases from being committed.
+- **DevExp:** Added a `load_env()` utility to automatically parse and load environment variables from the `.env` file during local command-line tasks (such as running tests or checks).
 - **UI:** Upgraded Status badges on Contact Messages (`/dashboard/admin/contact-messages/`) and Inquiries (`/dashboard/admin/inquiries/`) pages from blank/solid Bootstrap `.badge` capsules to premium **Soft Pill + SVG Icon** design:
   - New / Unread → Blue soft pill with envelope SVG
   - In Progress / Contacted → Amber soft pill with clock SVG
@@ -117,9 +121,6 @@ Each version entry should include:
 
 | Priority | Type | Description |
 |---|---|---|
-| 🔴 High | security | Remove hardcoded `SECRET_KEY` fallback; raise `ImproperlyConfigured` if not set |
-| 🔴 High | security | Change `DEBUG` default from `True` to `False` in `settings.py` |
-| 🔴 High | security | Add `backend/db.sqlite3` to `.gitignore` |
 | 🟡 Medium | perf | Split `dashboard/views.py` (3,058 lines) into `admin_views.py`, `teacher_views.py`, `student_views.py` |
 | 🟡 Medium | perf | Add server-side pagination to Student Database and Payments Ledger list views |
 | 🟡 Medium | perf | Configure Redis/Memcached caching for dashboard summary stats |
